@@ -1,0 +1,12 @@
+{
+  	"name": "Knockout.Validation",
+  	"version": "0.0.1",
+  	"description": "A validation library for Knockout JS",
+  	"jam": {
+  		"main": "Src/knockout.validation.js"
+  	},
+  	"repositories": [{
+      	"type": "git", 
+      	"url": "https://github.com/ericmbarnard/Knockout-Validation.git"
+	}]
+}

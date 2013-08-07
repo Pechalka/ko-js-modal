@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <script type="text/javascript" src="/javascrips/require.js"></script>
+    <script type="text/javascript">
+    require(['jquery', 'knockout', 'knockout.mapping', 'Knockout.Validation'], function($, ko, mapping) {
+    	$(function() {
+
+    		var Model = function(data, opt) {
+    			opt = opt || { defaults : {} };
+    			opt.autoUpdate = opt.autoUpdate || false;
+
+    			var d = {};
+    			var validators = {};
+    			for(var field in opt.fields){
+    				var f = opt.fields[field];
+    				d[field] = f.default;
+
+    				if (f.validation)
+    					validators[field] = f.validation;
+    			}
+
+    			data = $.extend(d, data);
+    			var self = {};
+
+    			mapping.fromJS(data, {}, self); 
+
+    			for(var prop in validators){
+    				self[prop].extend(validators[prop]);
+    			}
+
+    			self.save = function(cb) {
+    				cb = cb || function() {};
+
+    				var data = mapping.toJS(self);
+
+    				if (self.errors().length > 0){
+    					self.errors.showAllMessages();
+    					cb(null)
+    				} else {
+    					$.post(opt.url, data, function(response) {
+    						cb(response);
+    					}).fail(function() {
+    						cb(null);
+    					});
+    				}
+    			}
+
+    			self.onChange = function() {}
+
+    			self.change = ko.computed(function() {
+    				var data = mapping.toJS(self);
+    				
+    				if (self.change && opt.autoUpdate){
+    					self.save();
+    				}			
+    			});
+
+    			self.errors = ko.validation.group(self);
+
+    			return self;
+    		}
+
+
+
+    		var Income = function(data) {
+    			var self = Model(data, {
+    				url : '/api/income',
+    				autoUpdate : false,
+    				fields : {
+    					amount : { default : 200,  validation : {required : true }},
+    					name :  { default : 'test'},
+    					email : { validation : { email: true }},
+    					bank : { default : { id : undefined }}
+    				}
+    			});
+
+    			return self; 
+    		}
+    		
+    		var Page = function() {
+    			var self = this;
+    			self.title = 'hello';
+
+    			self.banks = ['1', '2', '3'];
+
+    			self.income = ko.observable(Income());
+
+    			self.createIncome = function() {
+	    			self.income().save(function(response) {
+	    				if (response && response.success)
+	    					self.income(Income({}));
+	    			})
+    			}
+
+    		}
+
+    		ko.applyBindings(new Page);
+    	})
+    });
+    </script>
+  </head>
+  <body>
+    <p>Welcome to <%= title %> <a href="#" data-bind="click : createIncome">save</a></p>
+  	<!-- ko with: income -->  
+    <p><input type="text" data-bind="value:name" /></p>
+    <p>
+    	<select data-bind="optionsCaption: '-', value : bank.id, options : $parent.banks"></select>
+    </p>
+    <p><input type="text" data-bind="value:amount" /></p>
+
+     <p><input type="text" data-bind="value:email" /></p>
+  	<!-- /ko -->
+  </body>
+</html>
